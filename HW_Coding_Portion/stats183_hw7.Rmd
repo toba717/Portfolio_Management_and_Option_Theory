@@ -1,0 +1,340 @@
+---
+title: "Stats 183 HW7"
+author: "Takao"
+date: "2023-05-21"
+output: html_document
+---
+
+
+An investor sells a European call on a share for 4 dollars . The stock price is 47 dollars and the exercise price is 50 dollars. When does the investor make a profit? When will the option be exercised? Use R to draw a diagram showing the investors profit against the price of the stock at expiration.
+
+```{r}
+#A.  Sell call 
+#Stock price at t=0:
+s0 <- 47
+
+#Hypothetical prices of the stock at expiration:
+s1 <- seq(1,100,1)
+
+#Price of the call:
+c <- 4
+
+#Exercise price:
+E <- 50
+
+
+#Profit from selling the call:
+profit_call <- ifelse(s1>E, E-s1+c, c)
+
+
+#Plot of the profit from selling the call:
+plot(s1, profit_call, type="l", ylim=c(-10,5), xlim = c(0, 65), xlab = "Stock Price", ylab = "Payoff", main = "Selling a European Call")
+
+
+
+abline(h=0)
+abline(v=0)
+```
+
+
+
+An investor buys a European put on a share for 3 dollars. The stock price is 42 dollars and the exercise price is 40 dollars. When does the investor make a profit? When will the option be exercised? Use R to draw a diagram showing the investors profit against the price of the stock at expiration
+
+```{r}
+#A.  Buying put 
+#Stock price at t=0:
+s0 <- 42
+
+#Hypothetical prices of the stock at expiration:
+s1 <- seq(1,100,1)
+
+#Price of the put:
+c <- 3
+
+#Exercise price:
+E <- 40
+
+#Profit from buying put
+profit_call <- ifelse(s1>E, -c, E-s1-c)
+
+
+#Plot of the profit from selling the call:
+plot(s1, profit_call, type="l", ylim=c(-5,10), xlim = c(0, 65), xlab = "Stock Price", ylab = "Payoff", main = "Buying a European Put")
+
+
+
+abline(h=0)
+abline(v=0)
+```
+
+You want to purchase 2 puts and 1 call. The call option costs 5 dollars and the put option costs 6 dollars. The exercise price for the call or the put is $50. Use R to plot the profit against the stock price at the expiration date:
+a. For the 2 puts.
+b. For the call.
+c. For the combination of the 2 puts and 1 call
+
+```{r}
+# Set the option parameters
+E <- 50 # Exercise price for both the call and the put
+call_price <- 5
+put_price <- 6
+
+# Create a sequence of potential stock prices at expiration
+S <- seq(0, 100, 1)
+
+# A. Calculate and plot the profit for the 2 puts
+profit_put <- ifelse(S < E, E - S - put_price, -put_price) * 2
+
+plot(S, profit_put, type="l", ylim=c(-40,40), 
+     ylab="Profit", xlab="Stock price at expiration",
+     main="Profit for 2 Puts", col="blue")
+
+abline(h=0)
+abline(v=0)
+
+# B. Calculate and plot the profit for the call
+profit_call <- ifelse(S > E, S - E - call_price, -call_price)
+
+plot(S, profit_call, type="l", ylim=c(-40,40), 
+     ylab="Profit", xlab="Stock price at expiration",
+     main="Profit for Call", col="green")
+abline(h=0)
+abline(v=0)
+
+# C. Calculate and plot the total profit for the 2 puts and 1 call
+total_profit <- profit_put + profit_call
+
+plot(S, total_profit, type="l", ylim=c(-40,40), 
+     ylab="Profit", xlab="Stock price at expiration",
+     main="Profit for 2 Puts and 1 Call", col="red")
+abline(h=0)
+abline(v=0)
+points(S,profit_call, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_put, lty="dashed", col="green", cex = 0.5)
+```
+
+
+
+Consider the following strategy: You write 2 call options (each one with E =  45 dollars, C = 5 dollars) and you buy 1 call option (with E = 40 dollars, C = 8 dollars). Both buying and selling call options have the same expiration date. Use R to plot the profit against the stock price at the expiration date for this strategy.
+
+```{r}
+# Set the option parameters
+E <- 40
+call_price <- 8
+
+# Create a sequence of potential stock prices at expiration
+S <- seq(0, 100, 1)
+
+# A. Calculate and plot the profit for the buying put
+profit_buy <- ifelse(S > E, S-E-call_price, -call_price) 
+
+
+E_sell <- 45
+call_price_sell <- 5
+profit_sell <- ifelse(S>E_sell, E_sell-S+call_price_sell, call_price_sell)*2
+
+
+total_profit <- profit_buy + profit_sell
+
+plot(S, total_profit, type="l", ylim=c(-40,40), 
+     ylab="Profit", xlab="Stock price at expiration",
+     main="Profit for Selling 2 Calls and Buying 1 Call", col="red")
+abline(h=0)
+abline(v=0)
+points(S,profit_buy, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_sell, lty="dashed", col="green", cex = 0.5)
+
+
+```
+
+
+By rearranging the put call parity equation p + S0 = c + Ee−rt give an example in R to show the payoff and profit using the following investing strategies:
+a. Long put long stock.
+b. Short put short stock.
+c. Long call short stock.
+d. Short call long stock
+
+```{r}
+# Set the parameters
+E <- 60 # Exercise price for both the call and the put
+r <- 0.05 # Risk-free interest rate
+t <- 1 # Time to expiration in years
+call_price <- 5
+put_price <- 6
+S0 <- 50 # Initial stock price
+
+# Create a sequence of potential stock prices at expiration
+S <- seq(0, 100, 1)
+
+# A. Long put long stock
+payoff_put <- ifelse(S > E,-put_price, E-S-put_price)
+
+payoff_stock <- S - S0
+payoff_a <- payoff_put + payoff_stock
+profit_a <- payoff_a - put_price
+
+plot(S, payoff_a, type="l", col="blue", ylim=c(-60,60),
+     main="Long Put Long Stock", ylab="Payoff/Profit", xlab="Stock Price at Expiration")
+lines(S, profit_a, col="red")
+lines(S, payoff_put, col="green")
+lines(S, payoff_stock, col="purple")
+
+legend("topright", legend=c("Total Payoff", "Profit", "Payoff from Put", "Payoff from Stock"),
+       col=c("blue", "red", "green", "purple"), lty=1, cex=0.5)
+
+# B. Short put short stock
+payoff_put <- ifelse(S > E, put_price, -E+S+put_price)
+payoff_stock <- S0-S
+payoff_b <- payoff_put + payoff_stock
+profit_b <- payoff_b + put_price 
+
+plot(S, payoff_b, type="l", col="blue", ylim=c(-60,60),
+     main="Short Put Short Stock", ylab="Payoff/Profit", xlab="Stock Price at Expiration")
+lines(S, profit_b, col="red")
+lines(S, payoff_put, col="green")
+lines(S, payoff_stock, col="purple")
+
+legend("topright", legend=c("Total Payoff", "Profit", "Payoff from Put", "Payoff from Stock"),
+       col=c("blue", "red", "green", "purple"), lty=1, cex=0.5)
+
+# C. Long call short stock
+payoff_call <- ifelse(S > E, S - E - call_price, -call_price)
+payoff_stock <- S0-S
+payoff_c <- payoff_call + payoff_stock
+profit_c <- payoff_c - call_price
+
+plot(S, payoff_c, type="l", col="blue", ylim=c(-60,60),
+     main="Long Call Short Stock", ylab="Payoff/Profit", xlab="Stock Price at Expiration")
+lines(S, profit_c, col="red")
+lines(S, payoff_call, col="green")
+lines(S, payoff_stock, col="purple")
+
+legend("topright", legend=c("Total Payoff", "Profit", "Payoff from Call", "Payoff from Stock"),
+       col=c("blue", "red", "green", "purple"), lty=1, cex=0.5)
+
+# D. Short call long stock
+payoff_call <- ifelse(S > E, -S + E + call_price, call_price)
+payoff_stock <- S - S0
+payoff_d <- payoff_call + payoff_stock
+profit_d <- payoff_d + call_price 
+
+plot(S, payoff_d, type="l", col="blue", ylim=c(-60,60),
+     main="Short Call Long Stock", ylab="Payoff/Profit", xlab="Stock Price at Expiration")
+# Add lines to the plot for the total profit, payoff from the call, and payoff from the stock
+lines(S, profit_d, col="red")
+lines(S, payoff_call, col="green")
+lines(S, payoff_stock, col="purple")
+
+# Add a legend to the plot
+legend("topleft", legend=c("Total Payoff", "Profit", "Payoff from Call", "Payoff from Stock"),
+       col=c("blue", "red", "green", "purple"), lty=1, cex=0.5)
+
+```
+
+
+Consider the box spread strategy: It is a combination of a bull call spread and a bear put spread. Bull call spread: Buy one call with exercise E1 = 50 dollars and sell one call with exercise E2 = 60 dollars. Bear put spread: Buy one put with exercise E2 = 60 dollars and sell one put with exercise E1 = 50 dollars.
+a. Complete the table that shows the payoffs for all the positions above.
+b. Construct the diagram in R that shows the payoff for the bull call spread, for the bear put spread, and the total
+
+```{r}
+# Set the option parameters
+E <- 50
+
+# Create a sequence of potential stock prices at expiration
+S <- seq(0, 100, 1)
+
+# A. Calculate and plot the profit for the buying put
+profit_buy <- ifelse(S > E, S-E, 0) 
+
+E2 <- 60
+
+profit_buy2 <- ifelse(S>E2, E2 - S, 0)
+
+
+total_profit <- profit_buy + profit_buy2
+
+plot(S, total_profit, type="l", ylim=c(-40,40), 
+     ylab="Payoff", xlab="Stock price at expiration",
+     main="Bullish Call Spread", col="red", lwd = 10)
+abline(h=0)
+abline(v=0)
+points(S,profit_buy, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_buy2, lty="dashed", col="green", cex = 0.5)
+
+```
+
+```{r}
+# Bearish Put Spread
+# A. Calculate and plot the profit for the buying put
+profit_put <- ifelse(S > E2, 0, E2-S) 
+
+profit_put2 <- ifelse(S>E,  0, -E + S)
+
+total_profit2  <- profit_put + profit_put2
+plot(S, total_profit2, type="l", ylim=c(-40,40), 
+     ylab="Payoff", xlab="Stock price at expiration",
+     main="Bearish Put Spread", col="red", lwd = 10)
+abline(h=0)
+abline(v=0)
+points(S,profit_put, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_put2, lty="dashed", col="green", cex = 0.5)
+
+```
+
+```{r}
+# Combined
+box_spread  <- total_profit + total_profit2
+plot(S, box_spread, type="l", ylim=c(-40,40), 
+     ylab="Payoff", xlab="Stock price at expiration",
+     main="Box Spread", col="red", lwd = 10)
+abline(h=0)
+abline(v=0)
+points(S,total_profit, lty="dashed", col="blue", cex = 0.5)
+points(S,total_profit2, lty="dashed", col="green", cex = 0.5)
+```
+Consider creating a bear spread using puts: Sell one put with exercise E1 and buy one put with exercise price E2, with E2 > E1. Complete the table that shows the payoff and profit for each position and the total and use a numerical example in R to show the diagram for each position and the total.
+
+```{r}
+# Bearish Put Spread
+# A. Calculate and plot the profit for the buying put
+profit_put <- ifelse(S > E2, 0, E2-S) 
+
+profit_put2 <- ifelse(S>E,  0, -E + S)
+
+total_profit2  <- profit_put + profit_put2
+plot(S, total_profit2, type="l", ylim=c(-40,40), 
+     ylab="Payoff", xlab="Stock price at expiration",
+     main="Bearish Put Spread", col="red", lwd = 10)
+abline(h=0)
+abline(v=0)
+points(S,profit_put, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_put2, lty="dashed", col="green", cex = 0.5)
+
+```
+
+Consider creating a bear spread using calls: Sell one call with exercise E1 and buy one call with exercise price E2, with E2 > E1. Complete the table that shows the payoff and profit for each position and the total and use a numerical example in R to show the diagram for each position and the total.
+
+
+```{r}
+# Bearish Call Spread
+# A. Calculate and plot the profit for the buying put
+E2 = 60
+E = 50
+profit_call <- ifelse(S > E2, S - E2, 0) 
+
+profit_call2 <- ifelse(S>E,  -S+E, 0)
+
+total_profit2  <- profit_call + profit_call2
+plot(S, total_profit2, type="l", ylim=c(-40,40), 
+     ylab="Payoff", xlab="Stock price at expiration",
+     main="Bearish Call Spread", col="red", lwd = 10)
+abline(h=0)
+abline(v=0)
+points(S,profit_call, lty="dashed", col="blue", cex = 0.5)
+points(S,profit_call2, lty="dashed", col="green", cex = 0.5)
+
+```
+
+
+
+
+

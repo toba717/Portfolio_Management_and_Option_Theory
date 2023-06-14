@@ -1,0 +1,67 @@
+---
+title: "stats183_hw9"
+author: "Takao"
+date: "2023-06-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Suppose a stock has annual expected return and standard deviation μ = 0.20 and σ = 0.25. The current price of the stock is s = $50. Suppose that ∆t = 1week.
+a. Find the distribution of the return of the stock during ∆t.
+b. Simulate the path of the stock from now until 1 year from now (52 weeks). Submit the random samples and the plot of the price of the stock against time.
+
+```{r}
+epsilon <- c(0,rnorm(52))
+S <- c(50,rep(0,52))
+DS <- rep(0,53)
+
+for(i in(1:52)) {
+          
+         DS[i+1] <- 0.2*(1/52)*S[i] + 0.25*(sqrt(1/52))*S[i]*epsilon[i+1] 
+
+         S[i+1] = S[i] + DS[i+1]
+}
+
+x <- seq(0,52)
+xx <- as.data.frame(cbind(x, epsilon, DS, S))
+
+plot(x, S, type="l", xlab="Periods", ylab="Stock price")
+
+points(x,S)
+```
+
+
+
+Exercise 5:
+Using the lognormal property of stock prices estimate the annual volatility of APPLE (ticker is AAPL) using the adjusted daily close prices for the period 01-March-2023 to 26-May-2023. Save the data in a csv file and then read the data in R as follows:
+s1 <- read.csv("AAPL.csv", sep=",", header=TRUE)
+
+```{r}
+s1 <- read.csv("AAPL.csv", sep=",", header=TRUE)
+
+numerator <- s1[,3]
+denom <- c(NA, numerator[1:60])
+frac <- numerator / denom
+u_i <- log(frac)
+
+df <- data.frame(cbind(s1, numerator, denom, frac, u_i))
+head(df)
+
+
+# using formula, we can calculate the sd of u_i
+sum_u_i <- sum(u_i[-1]^2)
+n_ubar <- length(u_i[-1])*((mean(u_i[-1]))^2)
+var_aapl <- (1/(length(u_i[-1])-1)) * (sum_u_i - n_ubar)
+
+volatility <- sqrt(var_aapl) * sqrt(252)
+volatility
+```
+
+
+
+
+
+
