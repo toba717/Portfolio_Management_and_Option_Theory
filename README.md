@@ -3,7 +3,7 @@ UCLA STATS283 Spring 2023 (Final Overall Course Grade: A)
 
 Course Title: Statistical Models in Finance (Graduate Level)
 
-Part I:
+### Part I:
 
 This part of the course will be devoted to portfolio management. The topics are listed below:
 
@@ -20,7 +20,7 @@ e. Constant correlation model (with and without short sales allowed).
 f. Multigroup and multi-index models s(short sales allowed).
 
 
-Part II:
+### Part II:
 
 This part of the course will discuss topics on options pricing and investment strategies:
 
