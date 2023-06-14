@@ -1,0 +1,196 @@
+---
+title: "stats 183 practice final"
+author: "Takao"
+date: "2023-06-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Problem 1
+##### black scholes call
+```{r part a}
+
+bs_call <- function(s,e,r,sigma,t){
+  
+  d1_num <- log(s/e) + (r + (1/2)*(sigma^2))*t
+  d1_den <- sigma*sqrt(t)
+  
+  d1 <- d1_num/d1_den
+  
+  d2_num <- log(s/e) + (r - (1/2)*(sigma^2))*t
+  d2 <- d2_num/d1_den
+  
+  C <- s*pnorm(d1) - e*exp(-r*t)*pnorm(d2)
+  
+  return(c("d1" = d1, "d2" = d2, "C" = C))
+}
+
+bs_call(100,95,0.1,0.5,3/12)
+
+```
+
+##### black scholes put
+```{r part b}
+
+bs_put <- function(s,e,r,sigma,t){
+  
+  d1_num <- log(s/e) + (r + (1/2)*(sigma^2))*t
+  d1_den <- sigma*sqrt(t)
+  
+  d1 <- d1_num/d1_den
+  
+  d2_num <- log(s/e) + (r - (1/2)*(sigma^2))*t
+  d2 <- d2_num/d1_den
+  
+  P <- e*exp(-r*t)*pnorm(-d2) - s*pnorm(-d1)
+  
+  print(pnorm(-d2))
+  print(pnorm(-d1))
+  return(c("d1" = d1, "d2" = d2, "C" = P))
+}
+
+bs_put(47,50,0.0662,0.2743,1/12)
+
+```
+
+
+## Problem 2
+
+##### Part c
+```{r}
+# estimation of volatility sigma
+estimation_volatility <- function(array){
+  temp <- c()
+  # finding values of the s_i/s_{i_1}
+  for(i in 1:length(array) - 1){
+    temp <- c(temp, array[i]/array[i+1])
+  }
+  
+  # finding the values of u
+  u_temp <- log(temp)
+  
+  mean_u <- mean(u_temp)
+  
+  right_side_sum <- 0
+  
+  for(i in 1:length(u_temp)){
+    right_side_sum = right_side_sum + (u_temp[i] - mean_u)^2
+  }
+  
+  # compute the standard deviation of u1, u2, u3,...
+  s <- sqrt((1/(length(array) - 2)) * right_side_sum)
+  return(s)
+}
+
+temp <- c(31.2, 32.5, 33.7, 35.5, 36.5)
+s <- estimation_volatility(temp)
+s 
+
+sigma <- s * sqrt(52)
+sigma
+```
+
+
+
+
+## Problem 3 
+##### Part d
+
+```{r}
+mean <- log(38) + ((0.18 - 0.5*0.2*0.2)*(3/12))
+mean
+
+sd <- 0.2 * sqrt(3/12)
+sd
+
+qnorm(p = 0.1, lower.tail = TRUE)
+
+val1 <- 1.285*0.1 + 3.678
+exp(val1)
+
+val2 <- -1.285*0.1 + 3.678
+exp(val2)
+```
+
+
+## Problem 4
+##### part 2
+```{r}
+d1 <- (0.1 + 0.5*0.25*0.25)*(0.5)/(0.25*sqrt(1/2))
+d1
+
+pnorm(d1)
+
+```
+
+
+## Problem 5
+##### Delta  
+
+```{r}
+delta_1 <- function(s,e,r,sigma,t){
+  
+  d1_num <- log(s/e) + (r + (1/2)*(sigma^2))*t
+  d1_den <- sigma*sqrt(t)
+  
+  d1 <- d1_num/d1_den
+  d1
+}
+delta_1(2,2, 0.1,0.25, 1/2)
+
+delta_2 <- delta_1(2,2, 0.1,0.25, 1/2)-1
+```
+
+```{r}
+d1 <- delta_1(49.75,50,0.05,0.2, 19/52)
+d1
+pnorm(d1)
+
+
+4550*49.75
+
+# interest
+2966600*(exp(0.05/52) - 1)
+```
+
+
+
+
+# Quiz 3
+##### Problem 8
+
+```{r}
+mean <- log(50) + (0.12 - 0.5*0.3*0.3)*2
+sd <- 0.3*sqrt(2)
+
+critical_val <- (log(80) - mean)/sd
+critical_val
+1- pnorm(critical_val)
+
+```
+
+##### Problem 9
+
+```{r}
+mean <- log(60) + (0.12 - (0.5*0.3*0.3)*0.5)
+sd <- 0.3 * sqrt(1/2)
+
+critical_val <- (log(60) - mean)/sd
+critical_val
+pnorm(critical_val)
+
+```
+
+
+
+```{r}
+pnorm(qnorm(0.777)-0.45*(2/52 ))
+
+pnorm(70.9773)
+```
+
+
