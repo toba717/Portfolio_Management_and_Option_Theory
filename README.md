@@ -1,6 +1,8 @@
 # Portfolio_Management_and_Option_Theory
 UCLA STATS283 Spring 2023 (Final Overall Course Grade: A)
 
+Course Title: Statistical Models in Finance
+
 Part I:
 
 This part of the course will be devoted to portfolio management. The topics are listed below:
