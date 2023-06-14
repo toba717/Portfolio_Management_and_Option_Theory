@@ -1,0 +1,80 @@
+---
+title: "stats183 hw5"
+author: "Takao"
+date: "2023-05-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exercise 4
+
+```{r}
+# return
+x <- c(0.15, 0.1, 0.075, 0.15, 0.3, 0.15, 0.075)
+r <- c(0.15, 0.2, 0.18, 0.12, 0.10, 0.14, 0.16)
+sum(r*x)
+```
+
+```{r}
+# variance
+rho <- 0.5
+v1 <- 0.1 
+v2 <- 0.15
+v3 <- 0.2 
+v4 <- 0.1 
+v5 <- 0.05 
+v6 <- 0.1
+v7 <- 0.2
+
+col1 <- c(v1*v1, rho*v1*v2,rho*v1*v3,rho*v1*v4, rho*v1*v5, rho*v1*v6, rho*v1*v7)
+col2 <- c(rho*v2*v1, v2*v2, rho*v2*v3,rho*v2*v4, rho*v2*v5, rho*v2*v6, rho*v2*v7)
+col3 <- c(rho*v3*v1,rho*v3*v2,v3*v3,rho*v3*v4, rho*v3*v5, rho*v3*v6, rho*v3*v7)
+col4 <- c(rho*v4*v1,rho*v4*v2,rho*v4*v3, v4*v4, rho*v4*v5, rho*v4*v6, rho*v4*v7)
+col5 <- c(rho*v5*v1,rho*v5*v2,rho*v5*v3,rho*v5*v4, v5*v5, rho*v5*v6, rho*v5*v7)
+col6 <- c(rho*v6*v1,rho*v6*v2,rho*v6*v3,rho*v6*v4, rho*v6*v5, v6*v6, rho*v6*v7)
+col7 <- c(rho*v7*v1,rho*v7*v2,rho*v7*v3,rho*v7*v4, rho*v7*v5, rho*v7*v6, v7*v7)
+
+
+# var covar matrix
+sigma <- rbind(col1,col2,col3,col4,col5,col6,col7)
+
+# variance of portfolio
+var_port <- t(x) %*% sigma %*% x
+
+# sd of portfolio
+sd <- var_port^(1/2)
+sd
+```
+
+
+
+# Exercise 7
+C star
+```{r}
+var_m <- 0.0018
+
+# for stock B
+c_b <- (var_m*0.96315789)/(1+var_m*97.92105)
+
+# for stock C
+c_c <- (var_m*3.3979405)/(1+var_m*370.61870)
+
+# for stock A
+c_a <- (var_m*3.68278898)/(1+var_m*638.37428)
+```
+
+finding the Z values
+
+
+```{r}
+z1 <- (0.94/0.0033)*(0.00106383-c_a)
+
+z2 <- (0.61/0.0038)*(0.00983607-c_a)
+
+z3 <- (1.12/0.0046)*(0.00892859-c_a)
+```
+
+
