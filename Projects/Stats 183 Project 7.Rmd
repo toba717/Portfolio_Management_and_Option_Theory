@@ -1,0 +1,445 @@
+---
+title: "STATS183 Project 7"
+author: "Takao Oba"
+date: "2023-05-05"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+## Please answer the following questions:
+
+### a. Assume the multigroup model holds with short sales allowed. Find the composition of the optimal portfolio and its expected return and standard deviation and place it on the plot you constructed in previous projects with all the other portfolios and stocks. Note: Please see the numerical example of handout #37 for more details.
+
+```{r}
+#Read your csv file:
+a <- read.csv("/Users/takaooba/STATS 183/stockData.csv", sep=",", header=TRUE)
+train <- a[1:60,]
+test <- a[61:dim(a)[1],]
+
+#Convert adjusted close prices into returns:
+r <- (train[-1,3:ncol(train)]-train[-nrow(train),3:ncol(train)])/train[-nrow(train),3:ncol(train)]
+
+```
+
+```{r}
+# by industries
+r1 <- r[,2:7]
+r2 <- r[,8:13]
+r3 <- r[,14:19]
+r4 <- r[,20:25]
+r5 <- r[,26:31]
+
+# make sure all of the industries has the same dimension
+all(dim(r1) == dim(r2), dim(r1) == dim(r3), dim(r1) == dim(r4),dim(r1) == dim(r5))
+
+
+rtemp <- r[,-1]
+
+corrr_simplified <- diag(5)
+corrr <- diag(30)
+for(i in 1:5){
+  for(j in 1:5){
+    if(i == j){
+      corrr[(1 + 6*(i-1)):(1+5 + 6*(i-1)), (1 + 6*(i-1)):(1+5 + 6*(i-1))] <- (sum(cor(rtemp[, (1 + 6*(i-1)):(1+5 + 6*(i-1))])) - 6)/(6*(6-1))
+      corrr_simplified[i,j] <- (sum(cor(rtemp[, (1 + 6*(i-1)):(1+5 + 6*(i-1))])) - 6)/(6*(6-1))
+    }else{
+      corrr[(1 + 6*(i-1)):(1+5 + 6*(i-1)), (1 + 6*(j-1)):(1+5 + 6*(j-1))] <- (mean(cor(rtemp[, (1 + 6*(i-1)):(1+5 + 6*(j-1))])))
+      corrr_simplified[i,j] <- (mean(cor(rtemp[, (1 + 6*(i-1)):(1+5 + 6*(j-1))])))
+    }
+  }
+}
+
+diag(corrr) <- 1
+
+
+
+```
+
+Finding the variance
+```{r}
+
+r1_var <- var(r1)
+r2_var <- var(r2)
+r3_var <- var(r3)
+r4_var <- var(r4)
+r5_var <- var(r5)
+r_var <- var(rtemp)
+r_mean <- colMeans(rtemp)
+# setting R_f
+r_f <- 0.005
+
+
+C_1 <- 0
+for (i in 1:6){
+  C_1 <- C_1 + (mean(rtemp[,i]) - r_f)/(sqrt(r1_var[i,i])*(1-corrr_simplified[1,1]))
+}
+
+
+C_2 <- 0
+for (i in 7:12){
+  C_2 <- C_2 + (mean(rtemp[,i]) - r_f)/(sqrt(r2_var[i-6,i-6])*(1-corrr_simplified[2,2]))
+}
+
+C_3 <- 0
+for (i in 13:18){
+  C_3 <- C_3 + (mean(rtemp[,i]) - r_f)/(sqrt(r3_var[i-12,i-12])*(1-corrr_simplified[3,3]))
+}
+
+C_4 <- 0
+for (i in 19:24){
+  C_4 <- C_4 + (mean(rtemp[,i]) - r_f)/(sqrt(r4_var[i-18,i-18])*(1-corrr_simplified[4,4]))
+}
+
+C_5 <- 0
+for (i in 25:30){
+  C_5 <- C_5 + (mean(rtemp[,i]) - r_f)/(sqrt(r5_var[i-24,i-24])*(1-corrr_simplified[5,5]))
+}
+
+
+C <- matrix(c(C_1, C_2, C_3, C_4, C_5), nrow = 5)
+```
+
+
+Finding A
+```{r}
+
+A <- matrix(0, nrow = 5, ncol = 5)
+
+for (i in 1:5){
+  for (j in 1:5){
+    A[i,j] <- (2*corrr_simplified[i,j])/(1/corrr_simplified[i,i])
+    if(i==j){
+      A[i,j] <- A[i,j] + 1
+    }
+  }
+}
+```
+
+Finding Phi
+```{r}
+# Phi = A^-1 C
+
+phi <- solve(A)%*%C
+
+
+```
+
+Finding z
+```{r}
+z <- matrix(0, nrow = 5, ncol =6)
+
+for(i in 1:5){
+  for(j in 1:6){
+    denom <- 1/(sqrt(r_var[(i-1)*6 + j,(i-1)*6 + j])*(1-corrr_simplified[i,i]))
+    first_term <- (r_mean[(i-1)*6 + j] - r_f)/(sqrt(r_var[(i-1)*6 + j,(i-1)*5 + j]))
+
+    temp <- 0
+    for(k in 1:5){
+      temp <- temp + corrr_simplified[i,k]*phi[k]
+    }
+
+    z[i,j] <- denom*(first_term - temp)
+  }
+}
+
+z
+
+```
+
+Finding the composition
+```{r}
+x <- z/sum(z)
+x
+
+
+x_composition <- c(t(x))
+
+# Expected Return
+expected_return <- t(x_composition) %*% r_mean
+
+
+ones <- rep(1, 30)
+# var_x <- ((expected_return - r_f)^2)/(as.numeric((r_mean - r_f%*%ones)%*%solve(r_var)%*%t(r_mean - r_f%*%ones)))
+var_x <- t(x_composition) %*% r_var %*% x_composition
+sd_x <- sqrt(var_x)
+```
+
+Plotting
+```{r}
+#Compute variance covariance matrix:
+covmat <- cov(r[-1]) #Without ^GSPC
+
+#Compute the vector of standard deviations:
+stdev <- diag(covmat)^.5
+
+#Compute mean vector:
+means <- colMeans(r[-1]) #Without ^GSPC
+
+# one vector
+ones <- rep(1,30)
+
+# mean vector of SP500
+means_sp500 <- mean(r[,1])
+stdev_sp500 <- sd(r[,1])
+
+#Compute A:
+A <- t(ones) %*% solve(covmat) %*% means
+# A
+
+#Compute B:
+B <- t(means) %*% solve(covmat) %*% means
+# B
+
+#Compute C:
+C <- t(ones) %*% solve(covmat) %*% ones
+# C
+
+#Compute D:
+D <- B*C - A^2
+# D
+
+
+#Hyperbola:
+#Efficient frontier:
+    minvar <- 1/C
+    minE <- A/C
+    sdeff <- seq((minvar)^0.5, 1, by = 0.0001)
+    
+#    options(warn = -1)
+    y1 <- (A + sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+    y2 <- (A - sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+#    options(warn = 0)
+
+plot(sdeff, y1, type = "n",xlim=c(0 ,0.12), ylim=c(-0.15,0.2), 
+     xlab="Portfolio standard deviation", ylab="Expected return", 
+     xaxt="no", yaxt="no", main = "Differences in Short Sales Allowed vs Not Allowed")
+
+axis(1, at=seq(0, 0.15, 0.02))
+axis(2, at=seq(-0.15,0.2, 0.02))
+
+    points(sdeff, y1, lwd=5,type = "l")
+    points(sdeff, y2, lwd=5,type = "l")
+
+# min risk portfolio
+points(sqrt(1/C), A/C, pch = 19, col = 10, lwd = 5)
+# 30 stocks
+points(stdev, means, pch = 19, col = 12)
+# sp500
+points(stdev_sp500, stdev_sp500, pch = 19, col = 3)
+# added points multigroup model
+points(sd_x, expected_return, pch = 19, col = 7)
+
+legend(x = 'topleft',cex  = 0.35,  
+       legend = c("Minimum Risk Portfolio","30 stocks", "sp500",  "E = 0.15", "Added Portfolios"),
+       text.col = c(10, 12, 3,  5, 7))
+```
+
+
+
+
+### b. Evaluate your portfolios that you constructed in the previous projects. In your analysis you should include the following:
+
+## 1. Time plots of the performance of all portfolios compared to the S&P 500 (see the graph constructed using handout #17) under “Labs”.
+
+Using test data
+```{r}
+#Convert adjusted close prices into returns:
+r_train <- (train[-1,3:ncol(train)]-train[-nrow(train),3:ncol(train)])/train[-nrow(train),3:ncol(train)]
+
+#Convert adjusted close prices into returns:
+r_test <- (test[-1,3:ncol(test)]-test[-nrow(test),3:ncol(test)])/test[-nrow(test),3:ncol(test)]
+```
+
+
+```{r}
+########################################################################
+# SP 500
+########################################################################
+#Monthly return in period 2015-01-01 to 2018-05-01:
+r22 <- as.matrix(r_test)
+#Market (S&P500) performance in period 2015-01-01 to 2018-05-01:
+plot(cumprod(1+(r22[,1])), ylim=c(0,2), type="l",col="pink", lwd=5)
+
+
+########################################################################
+#Assume equal allocation:
+########################################################################
+x <- rep(1/30, 30)
+
+#Compute montly returns in period 2015-01-01 to 2018-05-01:
+r22 <- as.matrix(r_test)
+
+EquRet <-  r22[,-1] %*% x
+lines(cumprod(1+EquRet), col="blue", lwd=2)
+
+
+########################################################################
+#Add another portfolio:
+#Use Rf=0.005 to find the optimal portfolio G (tangency point):
+########################################################################
+#Compute the mean returns:
+R_ibar <- as.matrix(colMeans(r_train[,-1]))
+
+#Compute the variance-covariance matrix:
+var_covar <- cov(r_train[,-1])
+
+#Compute the inverse of the variance-covariance matrix:
+var_covar_inv <- solve(var_covar)
+
+#Create the vector R:
+Rf <- 0.005
+R <- R_ibar-Rf
+
+#Compute the vector Z:
+z <- var_covar_inv %*% R
+
+#Compute the vector X:
+xopt <- z/sum(z)
+
+TangencyRet <- r22[,-1] %*% xopt
+
+lines(cumprod(1+ TangencyRet), col="green", lwd=2)
+
+
+########################################################################
+# Multigroup Model
+########################################################################
+multi <- r22[,-1] %*% x_composition
+lines(cumprod(1+multi), col = "yellow", lwd = 2)
+
+
+########################################################################
+# Single Index Model Short Selling Allowed
+########################################################################
+load("ssa.RData")
+ssa <- r22[,-1] %*% xx2
+lines(cumprod(1+ssa), col = "red", lwd = 2)
+
+
+########################################################################
+# Single Index Model SSNA
+########################################################################
+load("ssna.RData")
+# MCD, LULU, UNH, SBUX, ZTS, NVDA, ADBE, MA, MSFT, V, INTU
+ssna <- r22[,c(2,7,15,4,19, 30,28, 10, 27,8,29)] %*% xx3
+lines(cumprod(1+ssna), col = "purple", lwd = 2)
+
+
+legend(x = 'bottomright',cex  = 0.55,  
+       legend = c("sp500",  "Equal allocation",  "Another port", "Multigroup", "SSA", "SSNA"),
+       text.col = c("pink", "blue", "green", "yellow", "red", "purple"))
+
+```
+
+
+## 2. Average growth of each portfolio (use geometric mean).
+
+```{r}
+########################################################################
+#Compute average return for the equal allocation portfolio:
+########################################################################
+arithMean <- mean(EquRet)
+#But (1+r)^39 > (1+r1)(1+r2)...(1+r39)
+# (1+ arithMean)^39
+
+#Instead compute geometric average:
+comp <- cumprod(1+EquRet)
+geoMean <- comp[length(comp)]^(1/length(comp)) - 1
+
+
+########################################################################
+#Compute average return for the tangency portfolio:
+########################################################################
+arithMeanG <- mean(TangencyRet)
+#But (1+r)^39 > (1+r1)(1+r2)...(1+r39)
+# (1+ arithMeanG)^39
+
+#Instead compute geometric average:
+comp <- cumprod(1+ TangencyRet)
+geoMeanG <- comp[length(comp)]^(1/length(comp)) - 1
+
+
+########################################################################
+# SP500
+########################################################################
+comp <- cumprod(1 + r22[,1])
+geoMeanSP <- as.numeric(comp[length(comp)]^(1/length(comp)) - 1)
+
+########################################################################
+# Multigroup
+########################################################################
+comp <- cumprod(1+multi)
+geoMeanMG <- comp[length(comp)]^(1/length(comp)) - 1
+
+
+########################################################################
+# SSA
+########################################################################
+comp <- cumprod(1+ssa)
+geoMeanSSA <- comp[length(comp)]^(1/length(comp)) - 1
+
+
+########################################################################
+# SSNA
+########################################################################
+comp <- cumprod(1+ssna)
+geoMeanSSNA <- comp[length(comp)]^(1/length(comp)) - 1
+
+
+geoMean
+geoMeanG
+geoMeanSP
+geoMeanMG
+geoMeanSSA
+geoMeanSSNA
+```
+
+
+## 3. Calculate the Sharpe ratio, differential excess return, Treynor measure, and Jensen differential perfor-mance index.
+
+```{r}
+# sharpe ratio
+sr <- (colMeans(r_test[,-1] - Rf))/diag(cov(r_test[,-1]))^0.5
+sr
+
+# differential excess return
+der <- colMeans(r_test[,-1]) - Rf
+der
+
+
+# treynor measure
+r_m <- mean(r_test[,1])
+bm <- cov(r_test)[1,-1]/cov(r_test)[1,1]
+tm <- (colMeans(r_test[,-1]) - Rf)/bm
+tm
+
+# jensen differential performance index
+jensen <- colMeans(r_train[,-1]) - (r_f + bm * (r_m - r_f))
+jensen
+
+```
+
+
+## 4. Decompose the overall performance using Fama’s decomposition (net selectivity and diversification) for the single index model when short sales are not allowed. Please show this decomposition on the plot expected return against beta.
+
+```{r}
+# Get the number of portfolios
+n_portfolios <- ncol(r_train[,-1])
+
+# Prepare a vector to store the beta values
+beta <- numeric(n_portfolios)
+
+# Loop over the portfolios and run the regression for each one
+for (i in 1:n_portfolios) {
+  model <- lm(r_train[,i+1] ~ r_train[,1])
+  beta[i] <- coef(model)[2]
+}
+
+# Now you can plot
+plot(beta, colMeans(r_train[,-1]), ylim = c(0, 0.025), xlim = c(0,1.5), xlab = "Beta", ylab = "Expected Return")
+abline(a = Rf, b = mean(r_m - Rf), col = "blue")  # Capital Market Line
+
+
+```

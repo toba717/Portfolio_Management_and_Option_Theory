@@ -1,0 +1,452 @@
+---
+title: "STATS183 Project 3"
+author: "Takao Oba"
+date: "2023-04-14"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+Access the following data:
+http://www.stat.ucla.edu/~nchristo/statistics_c183_c283/statc183c283_5stocks.txt.
+In R you can access the data from the command line as follows:
+a <- read.table("http://www.stat.ucla.edu/~nchristo/statistics_c183_c283/statc183c283_5stocks.txt", header=T)
+These are close monthly prices from January 1986 to December 2003. The first column is the date and
+P1, P2, P3, P4, P5 represent the close monthly prices for the stocks Exxon-Mobil, General Motors, Hewlett
+Packard, McDonalds, and Boeing respectively.
+
+
+# a. Convert the prices into returns for all the 5 stocks. Important note: In this data set the most recent data are at the beginning. You will need to consider this when converting the prices into returns.
+
+```{r}
+a <- read.table("http://www.stat.ucla.edu/~nchristo/statistics_c183_c283/statc183c283_5stocks.txt", header=T)
+# ordering properly by date
+a <- a[order(a$date),]
+
+# converting to return
+r <- (a[-1,2:ncol(a)] - a[-nrow(a), 2:ncol(a)])/a[-nrow(a), 2:ncol(a)]
+head(r)
+```
+
+
+
+# b. Compute the mean return for each stock and the variance-covariance matrix.
+
+```{r}
+# mean return for each stock
+means <- colMeans(r)
+means
+
+# variance-covariance matrix
+covmat <- cov(r)
+covmat
+```
+
+
+# c. Use only Exxon-Mobil and Boeing stocks: For these 2 stocks find the composition, expected return, and standard deviation of the minimum risk portfolio.
+
+```{r}
+# Exxon-Mobil is represented as P1
+# Boeing is represented as P5
+exxon_boeing <- r[,c(1,5)]
+head(exxon_boeing)
+
+means2 <- colMeans(exxon_boeing)
+covmat2 <- cov(exxon_boeing)
+
+ones2 <- rep(1,2)
+
+# composition
+weights <- (solve(covmat2)%*%ones2/(as.numeric(t(ones2)%*%solve(covmat2)%*%ones2)))
+weights
+
+# expected return
+exp_return <- t(weights) %*% means2
+exp_return
+
+# standard deviation of minimum risk portfolio
+sd2 <- sqrt(t(weights) %*% covmat2 %*% weights)
+sd2
+
+```
+
+
+# d. Plot the portfolio possibilities curve and identify the efficient frontier on it.
+
+```{r}
+ones <- rep(1,5)
+# Computing A,B,C,D
+A <- t(ones) %*% solve(covmat) %*% means
+B <- t(means) %*% solve(covmat) %*% means
+C <- t(ones) %*% solve(covmat) %*% ones
+D <- B*C - A^2
+
+E <- seq(-5,5, 0.1)
+sigma2 <- (C*E^2 - 2*A*E +B) /D
+
+#plot E against sigma2:
+plot(sigma2, E,type="l", xlab=expression(sigma^2), main = "Frontier in the mean-variance space")
+points(1/C, A/C, col = "red", pch = 19)
+
+# coloring the side that is considered efficient frontier
+E_2 <- E[51:101]
+sigma2 <- sigma2[51:101]
+points(sigma2, E_2, lwd = 5, type = "l", col = "red")
+```
+
+
+# e. Use only Exxon-Mobil, McDonalds and Boeing stocks and assume short sales are allowed to answer the following question: For these 3 stocks compute the expected return and standard deviation for many combinations of xa, xb, xc with xa + xb + xc = 1 and plot the cloud of points. You can use the following combinations of the three stocks: a <- read.table("http://www.stat.ucla.edu/~nchristo/datac183c283/statc183c283_abc.txt", header=T)
+
+```{r}
+w <- read.table("http://www.stat.ucla.edu/~nchristo/datac183c283/statc183c283_abc.txt", header=T)
+
+# Exxon-Mobil is represented as P1
+# McDonalds is represented as P4
+# Boeing is represented as P5
+new_port <- r[,c(1,4,5)]
+
+#Compute the standard deviation of each portfolio:
+mexon <- mean(new_port$P1)
+mmcd <- mean(new_port$P4)
+mboeing <- mean(new_port$P5)
+
+vexon <- var(new_port$P1)
+vmcd <- var(new_port$P4)
+vboeing <- var(new_port$P5)
+
+c12 <- cov(new_port$P1, new_port$P4)
+c13 <- cov(new_port$P1, new_port$P5)
+c23 <- cov(new_port$P4, new_port$P5)
+
+#Compute the expected return of each portfolio:
+rp_bar <- w$a*mexon +w$b*mmcd +w$c*mboeing
+
+# risk
+sigma_p <- ((w$a)^2*vexon +(w$b)^2* vmcd+(w$c)^2*vboeing+2*w$a*w$b*c12+2*w$a*w$c*c13+2*w$b*w$c*c23)^.5
+
+rp_bar <- as.matrix(rp_bar)
+
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", main = "Cloud of Points: Expected Return vs SD")
+
+    points(sigma_p, rp_bar)
+    
+  
+    
+```
+
+
+
+# f. Assume Rf = 0.001 and that short sales are allowed. Find the composition, expected return and standard deviation of the portfolio of the point of tangency G and draw the tangent to the efficient frontier of question (e).
+
+
+
+```{r}
+#Choose risk-free return:
+Rf <- 0.001
+means <- colMeans(new_port)
+covmat <- cov(new_port)
+#===================================
+#===================================
+#Point of tangency:
+R <- means-Rf
+z <- solve(covmat) %*% R
+
+xx <- z/sum(z)
+
+rr <- t(xx) %*% means
+varr <- t(xx) %*% covmat %*% xx
+sdev <- varr^.5
+
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", xlim = c(0, 0.45), main = "Cloud of Points: (Expected Return vs SD) Plus CAL")
+
+points(sigma_p, rp_bar, cex = 0.5)
+    
+points(sdev,rr, col = "red", pch = 19, cex = 2)
+text(sdev,rr+0.001, "G", col = "red")
+
+
+# Capital Allocation Line
+slope <- as.numeric((rr - Rf) / sdev)
+x_ax <- seq(0, 0.45, 0.001)
+y_ax <- Rf + slope*x_ax
+text(0+0.001, Rf, "Rf", col = "red")
+
+lines(x_ax, y_ax, col = "red")
+abline(v = 0)
+abline(h = 0)
+```
+
+
+# g. Find the expected return and standard deviation of the portfolio that consists of 60% and G 40% risk free asset. Show this position on the capital allocation line (CAL).
+
+```{r}
+port_on_CAL <- sdev*0.6
+
+###########################
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", xlim = c(0, 0.45), main = "Point with 60% G and 40% RFA")
+
+points(sigma_p, rp_bar, cex = 0.5)
+    
+points(sdev,rr, col = "red", pch = 19, cex = 2)
+text(sdev,rr+0.001, "G", col = "red")
+
+
+# Capital Allocation Line
+slope <- as.numeric((rr - Rf) / sdev)
+x_ax <- seq(0, 0.45, 0.001)
+y_ax <- Rf + slope*x_ax
+text(0+0.001, Rf, "Rf", col = "red")
+
+lines(x_ax, y_ax, col = "red")
+abline(v = 0)
+abline(h = 0)
+###########################
+
+points(port_on_CAL, Rf + port_on_CAL*slope, col = "Blue", pch = 19, cex = 2)
+text(port_on_CAL, Rf + port_on_CAL*slope+0.001,"60/40" , col = "Blue")
+
+```
+
+
+# h. Refer to question (g). Use the expected value (E) you found in (g) to compute
+$$ X = \frac{(E-R_f)\Sigma^{-1}(\bar{R}-R_f1)}{(\bar{R} - R_f1)'\Sigma^{-1}(\bar{R} - R_f1)}$$
+# What does this x represent?
+
+```{r}
+ones <- c(1,1,1)
+E <- Rf + port_on_CAL*slope
+
+X <- ((as.numeric(E - Rf))*solve(covmat)%*%(t(means - Rf %*%ones)))/as.numeric(((means - Rf %*%ones))%*%solve(covmat)%*%(t(means - Rf %*%ones)))
+X
+
+sum(X)
+```
+
+##### ANSWER: X has a size of the amount of stocks that are in the portfoliio. In this case, we have three values that corresponds to the percentage invested in P1 (Exxon), P4 (McDonald's), P5 (Boeing). We notice that the sum of these three values is 0.6 as we will be investing the other components in the risk free asset.
+
+
+
+# i. Now assume that short sales are allowed but risk free asset does not exist.
+
+## 1. Using Rf1 = 0.001 and Rf2 = 0.002 find the composition of two portfolios A and B (tangent to the efficient frontier - you found the one with Rf1 = 0.001 in question (f)).
+
+```{r}
+Rf2 <- 0.002
+
+
+###########################
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", xlim = c(0, 0.45), main = "Composition of Two Portfolio for Rf1 and Rf2")
+
+points(sigma_p, rp_bar, cex = 0.5)
+    
+points(sdev,rr, col = "red", pch = 19, cex = 2)
+text(sdev,rr+0.001, "G", col = "red")
+
+
+# Capital Allocation Line
+slope <- as.numeric((rr - Rf) / sdev)
+x_ax <- seq(0, 0.45, 0.001)
+y_ax <- Rf + slope*x_ax
+text(0+0.001, Rf, "Rf1", col = "red")
+
+lines(x_ax, y_ax, col = "red")
+abline(v = 0)
+abline(h = 0)
+###########################
+
+
+# Point of Tangency 2
+R2 <- means-Rf2
+z2 <- solve(covmat) %*% R2
+
+xx2 <- z2/sum(z2)
+
+rr2 <- t(xx2) %*% means
+varr2 <- t(xx2) %*% covmat %*% xx2
+sdev2 <- varr2^.5
+points(sdev2,rr2, col = "Dark Green", pch = 19, cex = 2)
+text(sdev2,rr2+0.001, "G2", col = "Dark Green")
+
+# Capital Allocation Line 2
+
+slope2 <- as.numeric((rr2-Rf2)/sdev2)
+x_ax2 <- seq(0,0.45, 0.001)
+y_ax2 <- Rf2 + slope2*x_ax2
+text(0 + 0.001, Rf2+0.001, "Rf2", col = "Dark Green")
+lines(x_ax2, y_ax2, col = "Dark Green")
+
+```
+
+
+## 2. Compute the covariance between portfolios A and B?
+
+```{r}
+# Weights of A
+xx
+
+# Weights of B
+xx2
+
+# covariance between portfolio A and B
+cov_ab <- t(xx) %*% covmat %*% xx2
+cov_ab
+```
+
+
+## 3. Use your answers to (1) and (2) to trace out the efficient frontier of the stocks Exxon-Mobil, McDonalds, Boeing. Use a different color to show that the frontier is located on top of the cloud of points from question (e). Your graph should look like the one below
+
+```{r}
+
+#################################################################################
+###########################
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", xlim = c(0, 0.45), main = "Frontier Traced")
+
+points(sigma_p, rp_bar, cex = 0.5)
+    
+points(sdev,rr, col = "red", pch = 19, cex = 2)
+text(sdev,rr+0.001, "G", col = "red")
+
+
+# Capital Allocation Line
+text(0+0.001, Rf, "Rf1", col = "red")
+
+lines(x_ax, y_ax, col = "red")
+abline(v = 0)
+abline(h = 0)
+###########################
+
+
+# Point of Tangency 2
+points(sdev2,rr2, col = "Dark Green", pch = 19, cex = 2)
+text(sdev2,rr2+0.001, "G2", col = "Dark Green")
+
+# Capital Allocation Line 2
+text(0 + 0.001, Rf2+0.001, "Rf2", col = "Dark Green")
+lines(x_ax2, y_ax2, col = "Dark Green")
+#################################################################################
+
+#Mean1:
+m1 <- t(xx) %*% means
+
+#Variance1:
+v1 <- t(xx) %*% covmat %*% xx
+
+
+#Mean2:
+m2 <- t(xx2) %*% means
+
+#Variance2:
+v2 <- t(xx2) %*% covmat %*% xx2
+
+
+
+a <- seq(-3,3,.1)
+b <- 1-a
+
+r_ab <- a*m1 + b*m2
+
+var_ab <- a^2*v1 + b^2*v2 + 2*a*b*cov_ab
+sd_ab <- var_ab^.5
+
+# tracing out the efficient frontier
+points(sd_ab, r_ab, type = "l", lwd = 3, col="light green")
+```
+
+
+
+## 4. Find the composition of the minimum risk portfolio using the three stocks (how much of each stock) and its expected return, and standard deviation.
+
+```{r}
+#######################################################################################################
+#################################################################################
+###########################
+#Plot:
+plot(sigma_p, rp_bar, type = "n", xlab="Portfolio standard deviation",  ylab="Expected return", xlim = c(0, 0.45), main = "Final Expected Return vs Standard Deviation")
+
+points(sigma_p, rp_bar, cex = 0.5)
+
+# tracing out the efficient frontier
+points(sd_ab, r_ab, type = "l", lwd = 7, col="light green")
+    
+points(sdev,rr, col = "red", pch = 19, cex = 2)
+text(sdev,rr+0.001, "G", col = "red")
+
+
+# Capital Allocation Line
+text(0+0.001, Rf, "Rf1", col = "red")
+
+lines(x_ax, y_ax, col = "red")
+abline(v = 0)
+abline(h = 0)
+###########################
+
+
+# Point of Tangency 2
+points(sdev2,rr2, col = "Dark Green", pch = 19, cex = 2)
+text(sdev2,rr2+0.001, "G2", col = "Dark Green")
+
+# Capital Allocation Line 2
+text(0 + 0.001, Rf2+0.001, "Rf2", col = "Dark Green")
+lines(x_ax2, y_ax2, col = "Dark Green")
+#################################################################################
+
+#######################################################################################################
+
+
+#Compute A:
+A <- t(ones) %*% solve(covmat) %*% means
+
+#Compute B:
+B <- t(means) %*% solve(covmat) %*% means
+
+#Compute C:
+C <- t(ones) %*% solve(covmat) %*% ones
+
+#Compute D:
+D <- B*C - A^2
+
+points(sqrt(1/C), A/C, pch = 19, cex = 2, col = "light blue")
+text(sqrt(1/C), A/C - 0.002, "MRP", col = "light blue")
+
+legend(x = 'topleft',cex  = 0.65,  
+       legend = c("Minimum Risk Portfolio","Risk Free 1", "Risk Free 2", "Frontier"),
+       text.col = c("light blue", "Red", "Green", "light green"))
+
+
+
+```
+
+
+```{r}
+x <- solve(covmat) %*% ones / as.numeric(t(ones) %*% solve(covmat) %*% ones)
+# composition
+x
+```
+
+
+
+```{r}
+a <- matrix(c(1.08^2*0.002 + 0.003, 1.08*0.8*0.002, 1.08*1.22*0.002, 0.8*1.08*0.002, 0.8^2*0.002 + 0.006, 0.8*1.22*0.002, 1.22*1.08*0.002, 1.22*0.8*0.002, 1.22^2*0.002 + 0.001), nrow = 3)
+x <- c(0.3, 0.5, 0.2)
+
+sqrt(t(x) %*% a %*% x) * 8/5
+
+```
+
+
+```{r}
+covmat.solved <- matrix(c(325.66, -96.31, -348.91, -96.31, 889.84, -882.07, -348.91, -882.07, 2213.58), nrow = 3)
+r <- c(0.009, 0.01, 0.013)
+
+z <- covmat.solved %*% r
+
+z/sum(z)
+```
+
+

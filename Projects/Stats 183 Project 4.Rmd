@@ -1,0 +1,213 @@
+---
+title: "STATS183 Project 4"
+author: "Takao Oba"
+date: "2023-04-26"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+# Please answer the following questions assuming the single index model holds. Use your project data in the period 01-Jan-2015 to 01-Jan-2020.
+
+```{r}
+#Read your csv file:
+a <- read.csv("/Users/takaooba/STATS 183/stockData.csv", sep=",", header=TRUE)
+train <- a[1:60,]
+test <- a[61:dim(a)[1],]
+
+#Convert adjusted close prices into returns:
+r <- (train[-1,3:ncol(train)]-train[-nrow(train),3:ncol(train)])/train[-nrow(train),3:ncol(train)]
+
+#Compute mean vector:
+means <- colMeans(r[-1]) #Without ^GSPC
+
+#Compute variance covariance matrix:
+covmat <- cov(r[-1]) #Without ^GSPC
+
+#Compute the vector of variances:
+variances <- diag(covmat)
+
+#Compute the vector of standard deviations:
+stdev <- diag(covmat)^.5
+
+# mean vector of SP500
+means_sp500 <- mean(r[,1])
+stdev_sp500 <- sd(r[,1])
+
+# one vector
+ones <- rep(1,30)
+```
+
+### 1. Compute estimates for αi, βi, σ2_ϵi, i = 1, 2, . . . , 30 by regressing each stock’s return on the S&P500.
+
+```{r}
+index <- r[,1]
+rest <- r[,-1]
+
+alpha <- c()
+beta <- c()
+variance_epsilon <- c()
+
+
+
+for (i in 1:(dim(rest)[2])){
+  regress_model <- lm(rest[,i] ~ index)
+  
+  alpha[i] <- regress_model$coef[1]
+  beta[i] <- regress_model$coef[2]
+  variance_epsilon[i] <- ((summary(regress_model))$sigma)^2
+  
+}
+
+head(alpha)
+head(beta)
+head(variance_epsilon)
+```
+
+
+### 2. Construct the 30 × 30 variance covariance matrix based on the single index model.
+
+```{r}
+vcv_matrix <- matrix(rep(0), nrow = 30, ncol = 30)
+
+market_variance <- var(index)
+
+for (i in 1:30) {
+  for (j in 1:30) {
+    if (i == j) {
+      vcv_matrix[i, j] <- variance_epsilon[i] + beta[i]^2 * market_variance
+    } else {
+      vcv_matrix[i, j] <- beta[i] * beta[j] * market_variance
+    }
+  }
+}
+
+head(vcv_matrix)
+```
+
+
+### 3. Answer the same question as in project 2, part (e) using the new inputs from (1) above. Draw the frontier on the same plot as in project 2. Now you will have two frontiers, one using the historical variance covariance matrix (project 2) and one using the variance covariance matrix with inputs from the single index model.
+
+Computing A,B,CD
+```{r}
+#Compute A:
+A <- t(ones) %*% solve(covmat) %*% means
+A
+
+#Compute B:
+B <- t(means) %*% solve(covmat) %*% means
+B
+
+#Compute C:
+C <- t(ones) %*% solve(covmat) %*% ones
+C
+
+#Compute D:
+D <- B*C - A^2
+D
+```
+
+```{r}
+#Hyperbola:
+#Efficient frontier:
+    minvar <- 1/C
+    minE <- A/C
+    sdeff <- seq((minvar)^0.5, 1, by = 0.0001)
+    
+#    options(warn = -1)
+    y1 <- (A + sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+    y2 <- (A - sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+#    options(warn = 0)
+
+plot(sdeff, y1, type = "n",xlim=c(0 ,0.15), ylim=c(-0.15,0.2), 
+     xlab="Portfolio standard deviation", ylab="Expected return", 
+     xaxt="no", yaxt="no", main = "Hyperbola Method Frontier in the Mean-SD Space")
+
+axis(1, at=seq(0, 0.15, 0.02))
+axis(2, at=seq(-0.15,0.2, 0.02))
+
+    points(sdeff, y1, lwd=5,type = "l", col = "red")
+    points(sdeff, y2, lwd=5,type = "l")
+
+# min risk portfolio
+points(sqrt(1/C), A/C, pch = 19, col = 10, lwd = 5)
+```
+
+
+
+Computing A,B,CD
+```{r}
+#Compute A:
+A2 <- t(ones) %*% solve(vcv_matrix) %*% means
+A2
+
+#Compute B:
+B2 <- t(means) %*% solve(vcv_matrix) %*% means
+B2
+
+#Compute C:
+C2 <- t(ones) %*% solve(vcv_matrix) %*% ones
+C2
+
+#Compute D:
+D2 <- B2*C2 - A2^2
+D2
+```
+
+```{r}
+#Single Index Model:
+#Efficient frontier:
+    minvar2 <- 1/C2
+    minE2 <- A/C2
+    sdeff2 <- seq((minvar2)^0.5, 1, by = 0.0001)
+    
+#    options(warn = -1)
+    y12 <- (A2 + sqrt(D2*(C2*sdeff2^2 - 1)))*(1/C2) 
+    y22 <- (A2 - sqrt(D2*(C2*sdeff2^2 - 1)))*(1/C2) 
+#    options(warn = 0)
+
+plot(sdeff2, y12, type = "n",xlim=c(0 ,0.15), ylim=c(-0.15,0.2), 
+     xlab="Portfolio standard deviation", ylab="Expected return", 
+     xaxt="no", yaxt="no", main = "Single Index Model Frontier in the Mean-SD Space")
+
+axis(1, at=seq(0, 0.15, 0.02))
+axis(2, at=seq(-0.15,0.2, 0.02))
+
+    points(sdeff2, y12, lwd=5,type = "l", col = "red")
+    points(sdeff2, y22, lwd=5,type = "l")
+
+# min risk portfolio
+points(sqrt(1/C2), A2/C2, pch = 19, col = 10, lwd = 5)
+```
+
+
+
+```{r}
+plot(sdeff, y1, type = "n",xlim=c(0 ,0.15), ylim=c(-0.15,0.2), 
+     xlab="Portfolio standard deviation", ylab="Expected return", 
+     xaxt="no", yaxt="no", main = "Single Index Model vs Hyperbola Method")
+
+axis(1, at=seq(0, 0.15, 0.02))
+axis(2, at=seq(-0.15,0.2, 0.02))
+
+    points(sdeff, y1, lwd=5,type = "l", col = "red")
+    points(sdeff, y2, lwd=5,type = "l", col = "red")
+
+# min risk portfolio
+points(sqrt(1/C), A/C, pch = 19, col = "black", lwd = 5)
+
+
+
+points(sdeff2, y12, lwd=5,type = "l", col = "green")
+points(sdeff2, y22, lwd=5,type = "l", col = "green")
+
+# min risk portfolio
+points(sqrt(1/C2), A2/C2, pch = 19, col = "black", lwd = 5)
+
+legend(x = 'topleft', 
+       legend = c("Hyperbola", "SID", "MRP"),
+       text.col = c("red", "green", "black"))
+```
+
+
